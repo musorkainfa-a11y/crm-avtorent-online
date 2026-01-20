@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ru" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Прокат Авто - Online v2.0</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        dark: '#1e293b',
+                        darker: '#0f172a',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Supabase JS -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glass {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.85);
+        }
+        
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.85);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-darker min-h-screen">
+
+<!-- Шапка с аутентификацией -->
+<header class="glass border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white">
+                <i class="fas fa-car"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold">AutoRent CRM</h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Онлайн версия 2.0</p>
+            </div>
+        </div>
+        
+        <div id="auth-buttons" class="flex items-center gap-3">
+            <!-- Кнопки входа/регистрации показываются если пользователь не авторизован -->
+            <button onclick="showAuthModal()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                <i class="fas fa-sign-in-alt mr-2"></i>Войти
+            </button>
+        </div>
+        
+        <div id="user-info" class="hidden flex items-center gap-3">
+            <!-- Информация о пользователе показывается после входа -->
+            <div class="text-right">
+                <div class="font-medium" id="user-email"></div>
+                <div class="text-xs text-gray-500" id="user-plan">Бесплатный план</div>
+            </div>
+            <button onclick="logout()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 transition">
+                Выйти
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Модальное окно аутентификации -->
+<div id="auth-modal" class="fixed inset-0 bg-black/50 z-[100] hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark rounded-2xl w-full max-w-md p-6">
+        <h2 class="text-2xl font-bold mb-6">Вход / Регистрация</h2>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input type="email" id="auth-email" 
+                       class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800"
+                       placeholder="your@email.com">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">Пароль</label>
+                <input type="password" id="auth-password" 
+                       class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800"
+                       placeholder="Минимум 6 символов">
+            </div>
+            
+            <div id="auth-error" class="text-red-500 text-sm hidden"></div>
+            
+            <div class="flex gap-3 pt-4">
+                <button onclick="handleLogin()" 
+                        class="flex-1 bg-blue-500 text-white py-3 rounded-lg font-medium hover:bg-blue-600 transition">
+                    Войти
+                </button>
+                <button onclick="handleSignup()" 
+                        class="flex-1 bg-gray-200 dark:bg-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition">
+                    Регистрация
+                </button>
+            </div>
+            
+            <div class="text-center text-sm text-gray-500 mt-6">
+                Данные хранятся в защищенном облаке Supabase (ЕС)
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Основной контейнер -->
+<main class="container mx-auto px-4 py-8" id="main-content">
+    <div class="text-center py-20">
+        <div class="text-5xl mb-6">🚗</div>
+        <h2 class="text-3xl font-bold mb-4">Добро пожаловать в CRM Прокат Авто</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-8">Для начала работы войдите или зарегистрируйтесь</p>
+        <button onclick="showAuthModal()" 
+                class="px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg">
+            Начать бесплатно
+        </button>
+        
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div class="bg-white dark:bg-dark p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="text-3xl mb-4">☁️</div>
+                <h3 class="font-bold mb-2">Облачное хранение</h3>
+                <p class="text-sm text-gray-500">Доступ к данным с любого устройства</p>
+            </div>
+            
+            <div class="bg-white dark:bg-dark p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="text-3xl mb-4">👥</div>
+                <h3 class="font-bold mb-2">Многопользовательский</h3>
+                <p class="text-sm text-gray-500">Работайте всей командой</p>
+            </div>
+            
+            <div class="bg-white dark:bg-dark p-6 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div class="text-3xl mb-4">🛡️</div>
+                <h3 class="font-bold mb-2">Авто-бэкап</h3>
+                <p class="text-sm text-gray-500">Данные сохраняются автоматически</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Скрипты -->
+<script src="supabase.js"></script>
+<script src="auth.js"></script>
+
+<script>
+// Показываем/скрываем модальное окно аутентификации
+function showAuthModal() {
+    document.getElementById('auth-modal').classList.remove('hidden');
+    document.getElementById('auth-modal').classList.add('flex');
+}
+
+function hideAuthModal() {
+    document.getElementById('auth-modal').classList.add('hidden');
+    document.getElementById('auth-modal').classList.remove('flex');
+}
+
+// Закрытие модального окна при клике вне его
+document.getElementById('auth-modal').addEventListener('click', function(e) {
+    if(e.target === this) hideAuthModal();
+});
+</script>
+
+</body>
+</html>
